@@ -196,7 +196,7 @@ def main():
         title = 'PeYx'
         if path != '': title = f'PeYx: {path}'
 
-        root = mkRoot(title, "1000x500", f'{here}\\main.png')
+        root = mkRoot(title, "1105x500", f'{here}\\main.png')
         fonts = ['Arial', 'Arial Black', 'Arial CE', 'Arial CYR', 'Arial TUR', 'Bahnschrift', 'Bodoni Bd BT', 'Calibri', 'Cambria', 'Candara', 'Cascadia Code', 'Cascadia Mono', 'CentSchbkCyrill BT', 'Century725 Cn BT', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier', 'Courier New', 'DeVinne Txt BT', 'Ebrima', 'Embassy BT', 'EngraversGothic BT', 'Exotc350 Bd BT', 'Fixedsys', 'Franklin Gothic Medium', 'Freehand521 BT', 'Futura Bk BT', 'Gabriola', 'Gadugi', 'Geometr212 BkCn BT', 'Georgia', 'Humanst521 BT', 'Impact', 'Ink Free', 'Javanese Text', 'Kaufmann BT', 'Leelawadee UI', 'Lucida Console', 'Lucida Sans Unicode', 'MS Gothic', 'MS Sans Serif', 'MS Serif', 'MV Boli', 'Malgun Gothic', 'Marlett', 'Microsoft Himalaya', 'Microsoft JhengHei', 'Microsoft New Tai Lue', 'Microsoft PhagsPa', 'Microsoft Sans Serif', 'Microsoft Tai Le', 'Microsoft YaHei', 'Microsoft Yi Baiti', 'MingLiU-ExtB', 'Modern', 'Mongolian Baiti', 'Myanmar Text', 'News701 BT', 'NewsGoth BT', 'OCR-A BT', 'Palatino Linotype', 'Roman', 'Schadow BT', 'Script', 'Segoe Print', 'Segoe Script', 'Segoe UI', 'SimSun', 'Sitka Text', 'Small Fonts', 'Square721 BT', 'Swis721 Blk BT', 'Sylfaen', 'Symbol', 'System', 'Tahoma', 'Terminal', 'Times New Roman', 'Trebuchet MS', 'TypoUpright BT', 'Verdana', 'Webdings', 'Wingdings', 'Yu Gothic']
         
         tools = Frame(root, height=125, bg='white', highlightbackground='dark grey', highlightthickness=1)
