@@ -4,15 +4,22 @@ from tkinter.colorchooser import askcolor
 from tkinter.dialog import Dialog
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from os.path import abspath, dirname, isfile, join, splitext
-from os import getcwd, system
+from os import getcwd, system, chdir
 from sys import argv
 
 here = abspath(dirname(__file__))
 path = ''
 def main():
     config = here + r"\.PeYxconfig"
-    if not isfile(config) or readf(config, 'r') == '': writef(config, ["Arial~20~#000000~#FFFFFF~#0080ff"], 'w')
+    langInfo = here + r"\langInfo.txt"
+    if not isfile(config) or readf(config, 'r') == '': writef(config, ["Cascadia Mono~20~#ffff80~#000000~#0080ff~#00ff00"], 'w')
     font = readf(config, 'r').split('~')
+
+    langData = readf(langInfo, 'r').split('\n')
+    classes = tuple(langData[0].split(','))
+    keywords = tuple(langData[1].split(','))
+    lang = langData[2]
+    command = langData[3]
 
     global mainFont
     mainFont = [font[0], int(font[1])]
@@ -28,6 +35,10 @@ def main():
     highlight = font[4]
     global highlightb
     highlightb = None
+    global highlight2
+    highlight2 = font[5]
+    global highlight2b
+    highlight2b = None
     global toolsFont
     toolsFont = [mainFont[0], 12]
     global root
@@ -98,7 +109,7 @@ def main():
         root.title('PeYx')
         mainText.delete('0.0', 'end')
 
-    def saveFont(): writef(config, [f"{mainFont[0]}~{mainFont[1]}~{foreground}~{background}~{highlight}"], 'w')
+    def saveFont(): writef(config, [f"{mainFont[0]}~{mainFont[1]}~{foreground}~{background}~{highlight}~{highlight2}"], 'w')
 
     def changeFontSize(v=None):
         global mainFont
@@ -113,6 +124,7 @@ def main():
         saveFont()
         mainText.config(font=mainFont)
         mainText.tag_configure('highlight', font=mainFont)
+        mainText.tag_configure('highlight2', font=mainFont)
     
     def changeFontFamily(n):
         global mainFont
@@ -122,7 +134,7 @@ def main():
         saveFont()
         generateUI()
 
-    def changeColor(mode='0'):
+    def changeColor(mode='0', hindex='0'):
         global foreground
         global background
         global highlight
@@ -138,47 +150,90 @@ def main():
                 foregroundb.config(bg=foreground)
                 mainText.config(fg=foreground, insertbackground=foreground)
             elif mode == '1':
-                highlight = color[1]
-                highlightb.config(bg=highlight)
-                mainText.tag_configure('highlight', foreground=highlight)
+                if hindex == '0':
+                    highlight = color[1]
+                    highlightb.config(bg=highlight)
+                    mainText.tag_configure('highlight', foreground=highlight)
+                elif hindex == '1':
+                    highlight2 = color[1]
+                    highlight2b.config(bg=highlight2)
+                    mainText.tag_configure('highlight2', foreground=highlight2)
             else:
                 background = color[1]
                 backgroundb.config(bg=background)
                 mainText.config(bg=background)
             saveFont()
 
-    def runPython():
+    def runLang():
         if not isfile(path) or (isfile(path) and readf(path, 'r').split('\n') != mainText.get('0.0', 'end').split('\n')[:-1]):
             showerror("PeYx", "File must be saved before execution.")
             return
         
-        if splitext(path)[1] != '.py':
-            showerror("PeYx", "Only Python files (.py) can be run by PeYx.")
+        if splitext(path)[1] != lang:
+            showerror("PeYx", f"Only {lang} files can be compiled by PeYx. Go to langInfo.txt in PeYx's installed directory to change current language info.")
             return
         
-        system(f'python "{path}"')
+        current = command.replace('__file__', path)
+        current = current.replace('__dir__', abspath(dirname(path)))
+        chdir(abspath(dirname(path)))
+        system(current)
     
     def updateText():
         global oldText
-
-        if splitext(path)[1] == '.py' and (oldText != mainText.get('0.0', 'end') or oldText.endswith('#TOKEN')):
-            keys = ['False', 'class', 'from', 'or', 'None', 'continue', 'global', 'pass', 'True', 'def', 'if', 'raise', 'and', 'del', 'import', 'return', 'as', 'elif', 'in', 'try', 'assert', 'else', 'is' 'while', 'async', 'except', 'lambda', 'with', 'await', 'finally', 'nonlocal', 'yield', 'break', 'for', 'not']
-            for i, v in enumerate(mainText.get('0.0', 'end').split('\n'), 0):
+        if splitext(path)[1] == lang and (oldText != mainText.get('0.0', 'end') or oldText.endswith('#TOKEN')):
+            text = mainText.get('0.0', 'end')
+            for i, v in enumerate(text.split('\n'), 0):
                 wordSplit = v.split(' ')
                 start = 0
                 for v2 in wordSplit:
-                    if v2 in keys: mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2, 'highlight')
-                    elif v2[:-1] in keys and v2[-1] == ':':
-                        mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2[:-1], 'highlight')
-                        mainText.insert(f'{i+1}.{start+len(v2)-1}', v2[-1])
-                    elif v2.startswith('if('): mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+2}', v2[:2], 'highlight')
-                    elif v2.startswith('elif('): mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+4}', v2[:4], 'highlight')
-                    else: mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2)
+                    splitWord = ''
+                    if ':' in v2 or '(' in v2 or '.' in v2:
+                        keys = '.():'
+                        for key in keys:
+                            if key in v2:
+                                if isinstance(splitWord, list):
+                                    for i2 in range(len(splitWord)):
+                                        if key in splitWord[i2]:
+                                            word = splitWord[i2].split(key)
+
+                                            index = 0
+                                            for _ in range(len(word)-1):
+                                                word.insert(index+1, key)
+                                                index += 2
+                                            
+                                            index = i2
+                                            del splitWord[i2]
+                                            for v3 in word:
+                                                splitWord.insert(index, v3)
+                                                index += 1
+                                else:
+                                    splitWord = v2.split(key)
+
+                                    index = 0
+                                    for i2 in range(len(splitWord)-1):
+                                        splitWord.insert(index+1, key)
+                                        index += 2
+
+                        for i2, v3 in enumerate(splitWord):
+                            classCheck = f'import {v3}' in text or f'from {v3}' in text
+                            if v3 in keywords: splitWord[i2] += '#T0'
+                            elif v3 in classes and classCheck: splitWord[i2] += '#T1'
+                    
+                    if splitWord == '':
+                        classCheck = f'import {v2}' in text or f'from {v2}' in text
+                        if v2 in keywords: mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2, 'highlight')
+                        elif v2 in classes and classCheck: mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2, 'highlight2')
+                        else: mainText.replace(f'{i+1}.{start}', f'{i+1}.{start+len(v2)}', v2)
+                    else:
+                        length = 0
+                        for i2, v3 in enumerate(splitWord):
+                            if v3.endswith('#T0'): mainText.replace(f'{i+1}.{start+length}', f'{i+1}.{start+length+len(v3)-3}', v3[:-3], 'highlight'); length += len(v3) - 3
+                            elif v3.endswith('#T1'): mainText.replace(f'{i+1}.{start+length}', f'{i+1}.{start+length+len(v3)-3}', v3[:-3], 'highlight2'); length += len(v3) - 3
+                            else: mainText.replace(f'{i+1}.{start+length}', f'{i+1}.{start+length+len(v3)}', v3); length += len(v3)
                     
                     start += len(v2) + 1
             
             oldText = mainText.get('0.0', 'end')
-    
         root.after(1000, updateText)
 
     def generateUI():
@@ -190,13 +245,14 @@ def main():
         global foregroundb
         global backgroundb
         global highlightb
+        global highlight2b
 
         if root != None: root.destroy()
 
         title = 'PeYx'
         if path != '': title = f'PeYx: {path}'
 
-        root = mkRoot(title, "1105x500", f'{here}\\main.png')
+        root = mkRoot(title, "1128x500", f'{here}\\main.png')
         fonts = ['Arial', 'Arial Black', 'Arial CE', 'Arial CYR', 'Arial TUR', 'Bahnschrift', 'Bodoni Bd BT', 'Calibri', 'Cambria', 'Candara', 'Cascadia Code', 'Cascadia Mono', 'CentSchbkCyrill BT', 'Century725 Cn BT', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier', 'Courier New', 'DeVinne Txt BT', 'Ebrima', 'Embassy BT', 'EngraversGothic BT', 'Exotc350 Bd BT', 'Fixedsys', 'Franklin Gothic Medium', 'Freehand521 BT', 'Futura Bk BT', 'Gabriola', 'Gadugi', 'Geometr212 BkCn BT', 'Georgia', 'Humanst521 BT', 'Impact', 'Ink Free', 'Javanese Text', 'Kaufmann BT', 'Leelawadee UI', 'Lucida Console', 'Lucida Sans Unicode', 'MS Gothic', 'MS Sans Serif', 'MS Serif', 'MV Boli', 'Malgun Gothic', 'Marlett', 'Microsoft Himalaya', 'Microsoft JhengHei', 'Microsoft New Tai Lue', 'Microsoft PhagsPa', 'Microsoft Sans Serif', 'Microsoft Tai Le', 'Microsoft YaHei', 'Microsoft Yi Baiti', 'MingLiU-ExtB', 'Modern', 'Mongolian Baiti', 'Myanmar Text', 'News701 BT', 'NewsGoth BT', 'OCR-A BT', 'Palatino Linotype', 'Roman', 'Schadow BT', 'Script', 'Segoe Print', 'Segoe Script', 'Segoe UI', 'SimSun', 'Sitka Text', 'Small Fonts', 'Square721 BT', 'Swis721 Blk BT', 'Sylfaen', 'Symbol', 'System', 'Tahoma', 'Terminal', 'Times New Roman', 'Trebuchet MS', 'TypoUpright BT', 'Verdana', 'Webdings', 'Wingdings', 'Yu Gothic']
         
         tools = Frame(root, height=125, bg='white', highlightbackground='dark grey', highlightthickness=1)
@@ -207,6 +263,7 @@ def main():
 
         mainText = ScrolledText(root, width=10000, height=10000, font=mainFont, fg=foreground, bg=background, insertbackground=foreground, undo=True, wrap='none', xscrollcommand=scrollH.set, tabs=mkFont(mainFont[0], mainFont[1]).measure('    ')); mainText.pack()
         mainText.tag_configure('highlight', foreground=highlight, font=mainFont)
+        mainText.tag_configure('highlight2', foreground=highlight2, font=mainFont)
         scrollH.config(command=mainText.xview)
 
         fileTools = Frame(tools, width=100, height=25, bg='white', highlightbackground='black', highlightthickness=1)
@@ -235,9 +292,10 @@ def main():
         pythonTools = Frame(tools, width=100, bg='#f2f2f2', highlightbackground='black', highlightthickness=1)
         pythonTools.grid(row=0, column=4)
 
-        Label(pythonTools, font=toolsFont, text="PYTHON ").grid(row=0, column=0)
-        Button(pythonTools, font=toolsFont, text='Run', width=9, command=runPython).grid(row=0, column=1, padx=5)
-        highlightb = Button(pythonTools, text='   ', font=toolsFont, bg=highlight, command=lambda:changeColor('1')); highlightb.grid(row=0, column=2)
+        Label(pythonTools, font=toolsFont, text="CODE ").grid(row=0, column=0)
+        Button(pythonTools, font=toolsFont, text='Run', width=9, command=runLang).grid(row=0, column=1, padx=5)
+        highlightb = Button(pythonTools, text='   ', font=toolsFont, bg=highlight, command=lambda:changeColor('1', '0')); highlightb.grid(row=0, column=2)
+        highlight2b = Button(pythonTools, text='   ', font=toolsFont, bg=highlight2, command=lambda:changeColor('1', '1')); highlight2b.grid(row=0, column=3)
 
         m.config(font=(toolsFont[0], 11), width=20)
         for i in range(m['menu'].index('end')): m['menu'].entryconfig(i, font=(fonts[i], 11))
@@ -252,7 +310,7 @@ def main():
         root.bind('<Control-q>', lambda n:changeFontSize(1))
         root.bind('<Control-e>', lambda n:changeFontSize(-1))
         root.bind('<Control-o>', lambda n: openFile())
-        root.bind('<F5>', lambda n:runPython())
+        root.bind('<F5>', lambda n:runLang())
         root.protocol('WM_DELETE_WINDOW', checkSave)
         root.mainloop()
     
